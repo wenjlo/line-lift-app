@@ -14,7 +14,9 @@
         .media-container { width: 100%; height: 60%; background: #000; position: relative; }
         video { width: 100%; height: 100%; object-fit: contain; background: black; }
         .play-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-position: center; background-size: cover; background-repeat: no-repeat; display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; transition: opacity 0.3s; }
+        /* 修改 play-icon 樣式以適應文字 */
         .play-icon { width: 64px; height: 64px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; border: 2px solid rgba(255, 255, 255, 0.8); padding-left: 4px; }
+        .link-icon { padding-left: 0; font-size: 24px; } /* 連結圖示專用 */
         .info-container { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
         .tag { background-color: #f0f0f0; color: #666; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
         .title { font-size: 20px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; color: #222; }
@@ -61,7 +63,7 @@
         // ==========================================
         const MY_LIFF_ID = "2009007017-xNQkb1az";
 
-        // ⚠️ 多人管理員設定 (請將所有管理員的 User ID 放入下方中括號內，用逗號隔開)
+        // ⚠️ 多人管理員設定
         const ADMIN_USER_IDS = [
             "Ud702acdb5e5ac773849185c10c10c656",
             "U4ff19bb85095176d304337ade5429cf2"
@@ -122,7 +124,7 @@
         }
 
         // ==========================================
-        // 2. LIFF 初始化 (修正版：僅限管理員可見按鈕)
+        // 2. LIFF 初始化
         // ==========================================
         async function initLiff() {
             try {
@@ -132,13 +134,8 @@
                 const profile = await liff.getProfile();
                 const currentUserId = profile.userId;
 
-                // 🔒 權限檢查：只有在名單內的人，才會執行裡面的動作
                 if (ADMIN_USER_IDS.includes(currentUserId.trim())) {
-
-                    // 1. 顯示管理員標章
                     document.getElementById('admin-badge').style.display = 'block';
-
-                    // 2. 如果支援分享，顯示分享按鈕
                     if (liff.isApiAvailable('shareTargetPicker')) {
                         document.getElementById('shareBtn').style.setProperty('display', 'flex', 'important');
                     }
@@ -190,25 +187,57 @@
             }
         }
 
+        // 判斷是否為影片檔案的輔助函式
+        function isVideoFile(url) {
+            if (!url) return false;
+            const lowerUrl = url.toLowerCase();
+            return lowerUrl.includes('.m3u8') || lowerUrl.includes('.mp4') || lowerUrl.includes('.mov');
+        }
+
         function renderSlides(houses) {
             const wrapper = document.getElementById('slideContainer');
             houses.forEach((house, index) => {
                 const slide = document.createElement('div');
                 slide.className = 'swiper-slide';
-                const hasVideo = house.video_m3u8 && house.video_m3u8.length > 0;
+
+                // 判斷 resource 是否存在，以及是影片還是網頁連結
+                const resourceUrl = house.video_m3u8;
+                const hasResource = resourceUrl && resourceUrl.length > 0;
+                const isVideo = hasResource && isVideoFile(resourceUrl);
+                const isLink = hasResource && !isVideo;
+
+                // 根據不同類型建立 Media HTML
+                let mediaHtml = '';
+
+                if (isVideo) {
+                    // 1. 影片模式
+                    mediaHtml = `
+                        <div class="play-overlay" id="cover-${index}"
+                                style="background-image: url('${house.image_url}');"
+                                onclick="playVideo(${index}, '${resourceUrl}')">
+                            <div class="play-icon">▶</div>
+                        </div>
+                        <video id="video-${index}" playsinline controls style="display:none;"></video>
+                    `;
+                } else if (isLink) {
+                    // 2. 網頁連結模式 (VR, 官網等)
+                    mediaHtml = `
+                        <div class="play-overlay"
+                                style="background-image: url('${house.image_url}');"
+                                onclick="window.open('${resourceUrl}', '_blank')">
+                            <div class="play-icon link-icon">🔗</div>
+                        </div>
+                    `;
+                } else {
+                    // 3. 純圖片模式
+                    mediaHtml = `
+                        <div style="width:100%; height:100%; background:url('${house.image_url}') center/cover no-repeat;"></div>
+                    `;
+                }
 
                 slide.innerHTML = `
                     <div class="media-container">
-                        ${hasVideo ? `
-                            <div class="play-overlay" id="cover-${index}"
-                                 style="background-image: url('${house.image_url}');"
-                                 onclick="playVideo(${index}, '${house.video_m3u8}')">
-                                <div class="play-icon">▶</div>
-                            </div>
-                            <video id="video-${index}" playsinline controls style="display:none;"></video>
-                        ` : `
-                            <div style="width:100%; height:100%; background:url('${house.image_url}') center/cover no-repeat;"></div>
-                        `}
+                        ${mediaHtml}
                     </div>
                     <div class="info-container">
                         <div>

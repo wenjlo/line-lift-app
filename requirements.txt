@@ -1,0 +1,16 @@
+altgraph==0.17.5
+boto3==1.42.37
+botocore==1.42.37
+certifi==2026.1.4
+jmespath==1.1.0
+macholib==1.16.4
+numpy==2.4.1
+packaging==26.0
+pandas==3.0.0
+pyinstaller==6.18.0
+pyinstaller-hooks-contrib==2026.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.1
+s3transfer==0.16.0
+six==1.17.0
+urllib3==2.6.3
