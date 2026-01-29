@@ -2,3 +2,4 @@
 .jbeval
 __pycache__
 .idea
+*.json
