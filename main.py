@@ -44,7 +44,7 @@ def sheet_to_json(df):
     for _, row in df.iterrows():
         video_object = {
             "title": row['標題'],
-            "price": row['內容'],
+            "price":  row['價格'],
             "address": row['內容'],
             "image_url": row['圖片'],
             "video_m3u8": row['影片'],
