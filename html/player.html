@@ -57,13 +57,14 @@
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-    <script>
+<script>
         // ==========================================
         // 設定區
         // ==========================================
-        const MY_LIFF_ID = "2009007017-xNQkb1az";
+        // 1. 修改：將原本的 const 改為 let，且不給預設值
+        let MY_LIFF_ID = "";
 
-        // ⚠️ 多人管理員設定
+        // ⚠️ 多人管理員設定 (建議這也可以搬到 JSON 裡，但先維持現狀)
         const ADMIN_USER_IDS = [
             "Ud702acdb5e5ac773849185c10c10c656",
             "U4ff19bb85095176d304337ade5429cf2"
@@ -128,6 +129,7 @@
         // ==========================================
         async function initLiff() {
             try {
+                // 這裡會使用從 JSON 讀取到的 MY_LIFF_ID
                 await liff.init({ liffId: MY_LIFF_ID });
                 if (!liff.isLoggedIn()) return;
 
@@ -142,16 +144,34 @@
                 }
             } catch (err) {
                 console.error('LIFF init failed', err);
+                alert("LIFF 初始化失敗，請檢查 config.json 或網路連線");
             }
         }
 
         // ==========================================
-        // 3. 資料載入
+        // 3. 資料載入 (主程式入口)
         // ==========================================
         async function init() {
-            initLiff();
             const loading = document.getElementById('loading');
             const swiperEl = document.querySelector('.mySwiper');
+
+            // --- 修改重點開始：先讀取 config.json ---
+            try {
+                // 加個時間戳記避免瀏覽器快取舊的 config
+                const configRes = await fetch(`config.json?t=${new Date().getTime()}`);
+                if (!configRes.ok) throw new Error("Config file not found");
+                const configData = await configRes.json();
+
+                MY_LIFF_ID = configData.liffId; // 將讀取到的 ID 存入變數
+
+                // 確保拿到 ID 後才初始化 LIFF
+                await initLiff();
+            } catch (err) {
+                console.error("Config load failed:", err);
+                loading.innerText = "設定檔讀取失敗";
+                return; // 如果設定檔讀不到，就停止執行
+            }
+            // --- 修改重點結束 ---
 
             try {
                 let filename = targetDate;
@@ -200,17 +220,14 @@
                 const slide = document.createElement('div');
                 slide.className = 'swiper-slide';
 
-                // 判斷 resource 是否存在，以及是影片還是網頁連結
                 const resourceUrl = house.video_m3u8;
                 const hasResource = resourceUrl && resourceUrl.length > 0;
                 const isVideo = hasResource && isVideoFile(resourceUrl);
                 const isLink = hasResource && !isVideo;
 
-                // 根據不同類型建立 Media HTML
                 let mediaHtml = '';
 
                 if (isVideo) {
-                    // 1. 影片模式
                     mediaHtml = `
                         <div class="play-overlay" id="cover-${index}"
                                 style="background-image: url('${house.image_url}');"
@@ -220,7 +237,6 @@
                         <video id="video-${index}" playsinline controls style="display:none;"></video>
                     `;
                 } else if (isLink) {
-                    // 2. 網頁連結模式 (VR, 官網等)
                     mediaHtml = `
                         <div class="play-overlay"
                                 style="background-image: url('${house.image_url}');"
@@ -229,7 +245,6 @@
                         </div>
                     `;
                 } else {
-                    // 3. 純圖片模式
                     mediaHtml = `
                         <div style="width:100%; height:100%; background:url('${house.image_url}') center/cover no-repeat;"></div>
                     `;
