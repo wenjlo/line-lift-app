@@ -11,34 +11,42 @@
         body { background-color: #1a1a1a; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; color: #333; overflow: hidden; }
         .swiper { width: 100%; max-width: 420px; height: 85vh; }
         .swiper-slide { background: #fff; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .media-container { width: 100%; height: 60%; background: #000; position: relative; }
-        video { width: 100%; height: 100%; object-fit: contain; background: black; }
+
+        /* 影片區塊樣式修正 */
+        .media-container { width: 100%; height: 60%; background: #000; position: relative; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: contain; background: black; display: none; }
+
+        /* 播放封面與按鈕 */
         .play-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-position: center; background-size: cover; background-repeat: no-repeat; display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; transition: opacity 0.3s; }
-        /* 修改 play-icon 樣式以適應文字 */
-        .play-icon { width: 64px; height: 64px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; border: 2px solid rgba(255, 255, 255, 0.8); padding-left: 4px; }
-        .link-icon { padding-left: 0; font-size: 24px; } /* 連結圖示專用 */
+        .play-icon { width: 64px; height: 64px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; border: 2px solid rgba(255, 255, 255, 0.8); padding-left: 4px; pointer-events: none; }
+        .link-icon { padding-left: 0; font-size: 24px; }
+
         .info-container { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
         .tag { background-color: #f0f0f0; color: #666; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
         .title { font-size: 20px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; color: #222; }
         .price { font-size: 24px; font-weight: 800; color: #e63946; margin-bottom: 8px; }
         .address { font-size: 14px; color: #666; display: flex; align-items: center; margin-bottom: 15px; }
         .btn { background-color: #06C755; color: white; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: auto; transition: background-color 0.2s; }
-        .btn:active { background-color: #05b34c; }
+
         .float-btn-container { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 15px; z-index: 100; pointer-events: none; }
         .float-btn { pointer-events: auto; background-color: #333; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; transition: transform 0.1s; }
-        .float-btn:active { transform: scale(0.95); }
+
         #todayBtn { background-color: #ff9800; display: none; }
         #shareBtn { background-color: #06C755; display: none !important; }
-        #loading { position: absolute; color: white; text-align: center; font-size: 14px; letter-spacing: 1px; }
+
+        #loading { position: absolute; color: white; text-align: center; font-size: 14px; letter-spacing: 1px; z-index: 50; }
+
+        /* admin-badge 預設隱藏 */
         #admin-badge { position: fixed; top: 10px; right: 10px; background: rgba(6, 199, 85, 0.9); color: white; font-size: 12px; padding: 6px 10px; border-radius: 20px; z-index: 9999; display: none; pointer-events: none; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .error-box { background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 80%; }
+
+        .error-box { background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 80%; z-index: 60; }
         .error-box button { margin-top: 15px; background: #333; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="loading">正在載入...</div>
-    <div id="admin-badge">👑 管理員模式</div>
+    <div id="loading">正在連線...</div>
+    <div id="admin-badge">👑 管理員</div>
 
     <div class="float-btn-container">
         <div id="todayBtn" class="float-btn" onclick="goToToday()">
@@ -61,54 +69,22 @@
         // ==========================================
         // 設定區
         // ==========================================
-        const MY_LIFF_ID = "2009007017-xNQkb1az";
+        const BACKEND_API_URL = "https://line-permission-api-43uh3.ondigitalocean.app";
 
-        // ⚠️ 多人管理員設定
-        const ADMIN_USER_IDS = [
-            "Ud702acdb5e5ac773849185c10c10c656",
-            "U4ff19bb85095176d304337ade5429cf2"
-        ];
-
+        let MY_LIFF_ID = "";
         let globalHousesData = [];
 
-        // ==========================================
-        // 1. URL 參數解析
-        // ==========================================
+        // URL 解析
         function getTodayString() {
             const d = new Date();
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}${month}${day}`;
+            return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
         }
         const todayStr = getTodayString();
 
-        let rawQuery = window.location.search;
-        if (rawQuery.includes('%EF%BC%86') || rawQuery.includes('＆')) {
-            rawQuery = rawQuery.replace(/%EF%BC%86/g, '&').replace(/＆/g, '&');
-            rawQuery = rawQuery.replace(/%EF%BC%9F/g, '?').replace(/？/g, '?');
-        }
-        const urlParams = new URLSearchParams(rawQuery);
-
-        let targetDate = urlParams.get('date');
-        let targetType = urlParams.get('type');
+        const urlParams = new URLSearchParams(window.location.search);
+        let targetDate = urlParams.get('date') || todayStr;
+        let targetType = urlParams.get('type') || 'video';
         let targetIndex = parseInt(urlParams.get('idx')) || 0;
-
-        if (urlParams.has('liff.state')) {
-            try {
-                let decoded = decodeURIComponent(urlParams.get('liff.state'));
-                if (!decoded.includes('?') && !decoded.includes('=')) decoded = decodeURIComponent(decoded);
-                decoded = decoded.replace(/%EF%BC%86/g, '&').replace(/＆/g, '&');
-                const stateParams = new URLSearchParams(decoded);
-
-                if (!targetDate) targetDate = stateParams.get('date');
-                if (!targetType) targetType = stateParams.get('type');
-                if (stateParams.has('idx')) targetIndex = parseInt(stateParams.get('idx')) || 0;
-            } catch (e) {}
-        }
-
-        if (!targetDate) targetDate = todayStr;
-        if (!targetType) targetType = 'video';
 
         if (targetDate !== todayStr) {
             document.getElementById('todayBtn').style.display = 'flex';
@@ -118,133 +94,164 @@
             if (str && str.length === 8) return `${str.substring(0,4)}/${str.substring(4,6)}/${str.substring(6,8)}`;
             return str;
         }
-
         function goToToday() {
             window.location.href = `?date=${todayStr}&type=${targetType}&t=${new Date().getTime()}`;
         }
 
         // ==========================================
-        // 2. LIFF 初始化
-        // ==========================================
-        async function initLiff() {
-            try {
-                await liff.init({ liffId: MY_LIFF_ID });
-                if (!liff.isLoggedIn()) return;
-
-                const profile = await liff.getProfile();
-                const currentUserId = profile.userId;
-
-                if (ADMIN_USER_IDS.includes(currentUserId.trim())) {
-                    document.getElementById('admin-badge').style.display = 'block';
-                    if (liff.isApiAvailable('shareTargetPicker')) {
-                        document.getElementById('shareBtn').style.setProperty('display', 'flex', 'important');
-                    }
-                }
-            } catch (err) {
-                console.error('LIFF init failed', err);
-            }
-        }
-
-        // ==========================================
-        // 3. 資料載入
+        // 主程式 (Init)
         // ==========================================
         async function init() {
-            initLiff();
             const loading = document.getElementById('loading');
-            const swiperEl = document.querySelector('.mySwiper');
 
             try {
+                // 1. 讀取 Config
+                const configRes = await fetch(`config.json?t=${new Date().getTime()}`);
+                if (!configRes.ok) throw new Error("Config missing");
+                const configData = await configRes.json();
+                MY_LIFF_ID = configData.liffId;
+
+                // 2. 初始化 LIFF
+                await liff.init({ liffId: MY_LIFF_ID });
+                if (!liff.isLoggedIn()) { liff.login(); return; }
+
+                // 3. 取得 User Info & Context
+                const profile = await liff.getProfile();
+                const userId = profile.userId;
+                const context = liff.getContext();
+
+                let currentGroupId = "";
+                if (context && context.type === 'group') {
+                    currentGroupId = context.groupId;
+                } else if (context && context.type === 'room') {
+                    currentGroupId = context.roomId;
+                }
+
+                // ==========================================
+                // 4. 呼叫 Go Backend API 檢查 "分享權限"
+                // ==========================================
+                loading.innerText = "載入內容...";
+
+                try {
+                    const apiRes = await fetch(`${BACKEND_API_URL}/api/check-permission`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: userId,
+                            group_id: currentGroupId
+                        })
+                    });
+
+                    if (apiRes.ok) {
+                        const perms = await apiRes.json();
+                        console.log("Permission Result:", perms);
+
+                        // === 只判斷是否為管理員 (can_share) ===
+                        if (perms.can_share) {
+                            document.getElementById('admin-badge').style.display = 'block';
+                            if (liff.isApiAvailable('shareTargetPicker')) {
+                                document.getElementById('shareBtn').style.setProperty('display', 'flex', 'important');
+                            }
+                        } else {
+                            document.getElementById('shareBtn').style.display = 'none';
+                            document.getElementById('admin-badge').style.display = 'none';
+                        }
+                    }
+                } catch (apiErr) {
+                    console.error("API Error:", apiErr);
+                    // API 失敗不阻擋觀看，僅不顯示管理員按鈕
+                }
+
+                // ==========================================
+                // 5. 載入資料 (所有人都能看)
+                // ==========================================
+                loading.innerText = "載入內容...";
+
                 let filename = targetDate;
                 if (targetDate.length === 8) {
-                    const yyyy = targetDate.substring(0, 4);
-                    const mm = targetDate.substring(4, 6);
-                    const dd = targetDate.substring(6, 8);
-                    filename = `${targetType}-${yyyy}-${mm}-${dd}`;
+                    filename = `${targetType}-${targetDate.substring(0,4)}-${targetDate.substring(4,6)}-${targetDate.substring(6,8)}`;
                 }
 
                 const jsonUrl = `${filename}.json?t=${new Date().getTime()}`;
                 const response = await fetch(jsonUrl);
-                if (!response.ok) throw new Error(`Status: ${response.status}`);
+                if (!response.ok) throw new Error("Data not found");
 
                 const houses = await response.json();
                 globalHousesData = houses;
                 renderSlides(houses);
 
                 loading.style.display = 'none';
+                const swiperEl = document.querySelector('.mySwiper');
                 swiperEl.style.display = 'block';
                 setTimeout(() => swiperEl.style.opacity = '1', 50);
 
             } catch (err) {
                 console.error(err);
                 loading.style.display = 'none';
-                let errorHtml = `<div class="error-box"><h3>😕 讀取失敗</h3>`;
-                errorHtml += `<p>找不到檔案：<br>${targetType}-${formatDate(targetDate)}</p>`;
-                if (targetDate !== todayStr) {
-                    errorHtml += `<button onclick="goToToday()">回到今天</button>`;
+                if(err.message.includes("Data not found")) {
+                    alert("目前沒有本日的賞屋資料");
+                } else {
+                    alert("發生錯誤：" + err.message);
                 }
-                errorHtml += `</div>`;
-                document.body.innerHTML = errorHtml;
             }
         }
 
-        // 判斷是否為影片檔案的輔助函式
-        function isVideoFile(url) {
-            if (!url) return false;
-            const lowerUrl = url.toLowerCase();
-            return lowerUrl.includes('.m3u8') || lowerUrl.includes('.mp4') || lowerUrl.includes('.mov');
-        }
+        // ==============================================
+        // 渲染畫面 (包含修正後的 Video 結構)
+        // ==============================================
+        function isVideoFile(url) { return url && (url.includes('.m3u8') || url.includes('.mp4')); }
 
         function renderSlides(houses) {
             const wrapper = document.getElementById('slideContainer');
+            wrapper.innerHTML = ""; // 清空
+
             houses.forEach((house, index) => {
                 const slide = document.createElement('div');
                 slide.className = 'swiper-slide';
 
-                // 判斷 resource 是否存在，以及是影片還是網頁連結
-                const resourceUrl = house.video_m3u8;
-                const hasResource = resourceUrl && resourceUrl.length > 0;
-                const isVideo = hasResource && isVideoFile(resourceUrl);
-                const isLink = hasResource && !isVideo;
+                const isVideo = isVideoFile(house.video_m3u8);
+                const isLink = house.video_m3u8 && !isVideo; // 判斷是否為純連結
 
-                // 根據不同類型建立 Media HTML
-                let mediaHtml = '';
+                let mediaHtml = "";
 
                 if (isVideo) {
-                    // 1. 影片模式
+                    // 注意：onclick 使用 window.playVideo
                     mediaHtml = `
-                        <div class="play-overlay" id="cover-${index}"
-                                style="background-image: url('${house.image_url}');"
-                                onclick="playVideo(${index}, '${resourceUrl}')">
-                            <div class="play-icon">▶</div>
+                        <div class="media-container">
+                            <div class="play-overlay" id="cover-${index}"
+                                 style="background-image: url('${house.image_url}');"
+                                 onclick="window.playVideo(${index}, '${house.video_m3u8}')">
+                                <div class="play-icon">▶</div>
+                            </div>
+                            <video id="video-${index}" playsinline muted controls preload="metadata"></video>
                         </div>
-                        <video id="video-${index}" playsinline controls style="display:none;"></video>
                     `;
                 } else if (isLink) {
-                    // 2. 網頁連結模式 (VR, 官網等)
                     mediaHtml = `
-                        <div class="play-overlay"
-                                style="background-image: url('${house.image_url}');"
-                                onclick="window.open('${resourceUrl}', '_blank')">
-                            <div class="play-icon link-icon">🔗</div>
+                         <div class="media-container">
+                            <div class="play-overlay"
+                                    style="background-image: url('${house.image_url}');"
+                                    onclick="window.open('${house.video_m3u8}', '_blank')">
+                                <div class="play-icon link-icon">🔗</div>
+                            </div>
                         </div>
                     `;
                 } else {
-                    // 3. 純圖片模式
                     mediaHtml = `
-                        <div style="width:100%; height:100%; background:url('${house.image_url}') center/cover no-repeat;"></div>
+                        <div class="media-container">
+                            <div style="width:100%; height:100%; background:url('${house.image_url}') center/cover no-repeat;"></div>
+                        </div>
                     `;
                 }
 
                 slide.innerHTML = `
-                    <div class="media-container">
-                        ${mediaHtml}
-                    </div>
+                    ${mediaHtml}
                     <div class="info-container">
                         <div>
                             <div class="tag">精選內容</div>
                             <div class="title">${house.title}</div>
-                            <div class="price">${house.price || "免費"}</div>
-                            <div class="address" style="white-space: pre-wrap;">${house.address}</div>
+                            <div class="price">${house.price||"免費"}</div>
+                            <div class="address">${house.address}</div>
                         </div>
                         <a href="${house.detail_url}" class="btn" target="_blank">查看全部</a>
                     </div>
@@ -255,40 +262,88 @@
             new Swiper(".mySwiper", {
                 pagination: { el: ".swiper-pagination", dynamicBullets: true },
                 effect: "coverflow",
-                grabCursor: true,
                 centeredSlides: true,
                 slidesPerView: "auto",
                 initialSlide: targetIndex,
                 spaceBetween: 20,
-                coverflowEffect: { rotate: 0, stretch: 0, depth: 100, modifier: 1, slideShadows: false },
-                on: { slideChange: function () { pauseAllVideos(); } }
+                coverflowEffect: { depth: 100, modifier: 1, slideShadows: false },
+                on: { slideChange: function () { document.querySelectorAll('video').forEach(v => v.pause()); } }
             });
         }
 
-        // ==========================================
-        // 4. 分享邏輯
-        // ==========================================
+        // ==============================================
+        // 播放器核心邏輯 (支援 MP4/HLS + 自動修正權限)
+        // ==============================================
+        window.playVideo = function(index, src) {
+            const video = document.getElementById(`video-${index}`);
+            const cover = document.getElementById(`cover-${index}`);
+
+            if (!video) return;
+
+            // 切換 UI
+            cover.style.display = 'none';
+            video.style.display = 'block';
+
+            // 確保靜音以符合 Autoplay Policy
+            video.muted = true;
+
+            // MP4 處理
+            if (src.includes('.mp4')) {
+                video.src = src;
+                attemptPlay(video);
+            }
+            // HLS 處理
+            else {
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    // iOS Native
+                    video.src = src;
+                    video.addEventListener('loadedmetadata', function() {
+                        attemptPlay(video);
+                    });
+                } else if (Hls.isSupported()) {
+                    // Android / PC
+                    const hls = new Hls();
+                    hls.loadSource(src);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        attemptPlay(video);
+                    });
+                } else {
+                    alert("您的瀏覽器不支援此影片格式");
+                }
+            }
+        };
+
+        function attemptPlay(videoEl) {
+            const playPromise = videoEl.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.error("Autoplay prevented:", error);
+                    // 如果被阻擋，顯示控制項讓使用者手點
+                    videoEl.controls = true;
+                    if (error.name === 'NotAllowedError') {
+                        // 這是正常的，通常是因為瀏覽器不允許程式觸發播放
+                        // 已經顯示 controls，使用者點擊即可
+                    } else {
+                        alert("無法播放影片: " + error.message);
+                    }
+                });
+            }
+        }
+
+        // ... 分享邏輯 ...
         async function shareToFriends() {
             if (!liff.isLoggedIn()) { liff.login(); return; }
-            if (globalHousesData.length === 0) { alert("無資料"); return; }
+            if (globalHousesData.length === 0) return;
 
-            const bubbles = globalHousesData.map((house, index) => {
+            const bubbles = globalHousesData.slice(0, 12).map((house, index) => {
                 const safeUrl = `https://liff.line.me/${MY_LIFF_ID}?date=${targetDate}&type=${targetType}&idx=${index}`;
-
-                let displayPrice = house.price;
-                if (!displayPrice || displayPrice.trim() === "") {
-                    displayPrice = house.address ? house.address.substring(0, 15) + (house.address.length>15?"...":"") : "精選內容";
-                }
+                let displayPrice = house.price || (house.address ? house.address.substring(0, 15)+"..." : "精選內容");
 
                 return {
-                    "type": "bubble",
-                    "size": "kilo",
+                    "type": "bubble", "size": "kilo",
                     "hero": {
-                        "type": "image",
-                        "url": house.image_url,
-                        "size": "full",
-                        "aspectMode": "cover",
-                        "aspectRatio": "16:9",
+                        "type": "image", "url": house.image_url, "size": "full", "aspectMode": "cover", "aspectRatio": "16:9",
                         "action": { "type": "uri", "label": "查看", "uri": safeUrl }
                     },
                     "body": {
@@ -300,47 +355,14 @@
                     },
                     "footer": {
                         "type": "box", "layout": "vertical",
-                        "contents": [
-                            { "type": "button", "style": "primary", "color": "#06C755", "height": "sm", "action": { "type": "uri", "label": "點擊觀看", "uri": safeUrl } }
-                        ]
+                        "contents": [{ "type": "button", "style": "primary", "color": "#06C755", "height": "sm", "action": { "type": "uri", "label": "點擊觀看", "uri": safeUrl } }]
                     }
                 };
             });
 
-            const safeBubbles = bubbles.slice(0, 12);
-            const flexMessage = {
-                "type": "flex",
-                "altText": `【精選】${formatDate(targetDate)} 每日更新`,
-                "contents": { "type": "carousel", "contents": safeBubbles }
-            };
-
             try {
-                const res = await liff.shareTargetPicker([flexMessage]);
-                if (res) alert("✅ 已成功分享！");
-            } catch (err) {
-                console.error("分享失敗:", err);
-            }
-        }
-
-        function playVideo(index, m3u8Url) {
-            const cover = document.getElementById(`cover-${index}`);
-            const video = document.getElementById(`video-${index}`);
-            cover.style.display = 'none';
-            video.style.display = 'block';
-            if (Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(m3u8Url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = m3u8Url;
-                video.addEventListener('loadedmetadata', function() { video.play(); });
-            }
-        }
-
-        function pauseAllVideos() {
-            const videos = document.querySelectorAll('video');
-            videos.forEach(v => { v.pause(); });
+                await liff.shareTargetPicker([{ "type": "flex", "altText": `【精選】${formatDate(targetDate)} 賞屋`, "contents": { "type": "carousel", "contents": bubbles } }]);
+            } catch (err) { console.error(err); }
         }
 
         init();
