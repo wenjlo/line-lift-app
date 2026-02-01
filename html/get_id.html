@@ -3,216 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ID 查詢工具</title>
+    <title>ID 資訊查詢</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px 0;
-            text-align: center;
-        }
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: 80%;
-            max-width: 400px;
-            margin-bottom: 20px;
-        }
-        img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin-bottom: 15px;
-            border: 3px solid #06C755;
-        }
-        h2 { margin: 10px 0; color: #333; }
-        h3 { margin: 20px 0 5px 0; color: #555; font-size: 16px; border-bottom: 2px solid #eee; padding-bottom: 5px; display: inline-block;}
-        p { color: #666; margin-bottom: 5px; font-size: 14px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 20px; text-align: center; background: #f0f0f0; }
+        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .label { font-size: 12px; color: #888; margin-bottom: 5px; margin-top: 15px;}
+        .val { font-family: monospace; font-size: 16px; font-weight: bold; word-break: break-all; margin-bottom: 5px; }
 
-        .id-box {
-            background: #eee;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 15px;
-            color: #d32f2f;
-            word-break: break-all;
-            margin: 10px 0 15px 0;
-            border: 1px dashed #999;
-        }
+        /* ID 狀態樣式 */
+        .u-id { color: #007bff; background: #e3f2fd; padding: 8px; border-radius: 5px; border: 1px solid #007bff; display:block; }
+        .c-id { color: #00B900; border: 1px solid #00B900; background: #e8f5e9; padding: 8px; border-radius: 5px; display:block;}
+        .uuid { color: #d32f2f; border: 1px dashed #d32f2f; background: #ffebee; padding: 8px; border-radius: 5px; display:block;}
 
-        .no-group {
-            color: #888;
-            font-style: italic;
-            background: #f9f9f9;
-        }
+        /* 按鈕樣式 */
+        button { border-radius: 50px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
+        .btn-green { background: #06C755; color: white; padding: 12px 24px; }
+        .btn-blue { background: #007bff; color: white; padding: 12px 24px; }
+        .btn-gray { background: #666; color: white; padding: 12px 24px; }
 
-        .btn {
-            background-color: #06C755;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 50px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 10px;
+        /* 新增：複製小按鈕 */
+        .btn-copy {
+            background: #eee; color: #333;
+            padding: 6px 15px;
+            font-size: 12px;
+            width: auto; /* 不要在寬度上撐滿 */
+            border: 1px solid #ccc;
+            margin-top: 5px;
+            display: inline-block;
         }
-        .btn:active { background-color: #05b34c; transform: scale(0.98); }
-        .btn-secondary { background-color: #666; }
+        .btn-copy:active { background: #ddd; transform: scale(0.95); }
 
-        #status { margin-top: 5px; color: #06C755; font-size: 14px; height: 20px; font-weight: bold;}
+        hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
     </style>
 </head>
 <body>
 
-    <div class="card" id="content" style="display:none;">
-        <img id="profileImage" src="" alt="Profile">
-        <h2 id="displayName">載入中...</h2>
+    <div id="loading">讀取中...</div>
 
-        <h3>👤 個人 User ID</h3>
-        <div class="id-box" id="userIdDisplay">...</div>
-        <button class="btn" onclick="copyText('userIdDisplay')">📋 複製 User ID</button>
+    <div class="box" id="result" style="display:none;">
+        <h3>🕵️ ID 診斷報告</h3>
 
-        <h3>👥 目前群組 Group ID</h3>
-        <div class="id-box" id="groupIdDisplay">讀取中...</div>
-        <button class="btn btn-secondary" id="groupBtn" onclick="copyText('groupIdDisplay')" disabled>📋 複製 Group ID</button>
+        <div class="label">👤 User ID (個人 ID)</div>
+        <div id="display-user-id" class="val">Checking...</div>
+        <button class="btn-copy" onclick="copyText(currentUserId)">📋 複製 User ID</button>
 
-        <div id="status"></div>
+        <hr>
+
+        <div class="label">👥 Group ID (群組 ID/UUID)</div>
+        <div id="context-id" class="val">Checking...</div>
+        <button class="btn-copy" onclick="copyText(currentGroupId)">📋 複製 Group ID</button>
+
+        <div id="status-text" style="font-size: 13px; margin-bottom: 15px; margin-top: 15px;"></div>
+
+        <div id="success-area" style="display:none;">
+            <p style="font-size:12px; color:#666;">恭喜！此 Group ID 為真實 ID。</p>
+        </div>
+
+        <div id="fail-area" style="display:none;">
+            <p style="font-size:12px; color:#d32f2f; text-align: left;">
+                <b>目前顯示的是虛擬 UUID</b><br>
+                這代表權限或好友關係未通過。若您是開發者需要真實 ID，請點下方按鈕。
+            </p>
+            <button class="btn-blue" onclick="askBot()">🤖 呼叫機器人查 ID</button>
+        </div>
+
+        <button class="btn-gray" onclick="window.location.reload()" style="margin-top:20px;">🔄 重新整理</button>
     </div>
 
-    <div id="loading">正在讀取設定檔...</div>
-
-<script>
-        // 宣告變數，稍後從 JSON 填入
-        let NEW_LIFF_ID = "";
+    <script>
+        // 定義全域變數，方便複製功能存取
+        let currentUserId = "";
+        let currentGroupId = "";
 
         async function main() {
             try {
-                // ==========================================
-                // 1. 讀取 config.json
-                // ==========================================
-                // 加上 timestamp 防止瀏覽器快取
+                // 1. 讀取設定
                 const configRes = await fetch(`config.json?t=${new Date().getTime()}`);
-
-                if (!configRes.ok) {
-                    throw new Error("找不到 config.json");
-                }
-
                 const config = await configRes.json();
 
-                // 🔴 修改這裡：讀取 "userIDLiffId" 而不是 "liffId"
-                NEW_LIFF_ID = config.userIDLiffId;
+                // 2. 初始化
+                await liff.init({ liffId: config.userIDLiffId });
 
-                // 檢查是否成功讀取到
-                if (!NEW_LIFF_ID) {
-                    throw new Error("config.json 中找不到 userIDLiffId");
-                }
-
-                // 顯示狀態
-                document.getElementById('loading').textContent = "正在初始化 LIFF...";
-
-                // ==========================================
-                // 2. 初始化 LIFF
-                // ==========================================
-                await liff.init({ liffId: NEW_LIFF_ID });
-
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
-
-                // ==========================================
-                // 3. 取得 User Profile
-                // ==========================================
-                const profile = await liff.getProfile();
-                document.getElementById('profileImage').src = profile.pictureUrl || "https://via.placeholder.com/80";
-                document.getElementById('displayName').textContent = profile.displayName;
-                document.getElementById('userIdDisplay').textContent = profile.userId;
-
-                // ==========================================
-                // 4. 取得 Group Context
-                // ==========================================
-                const context = liff.getContext();
-                const groupBox = document.getElementById('groupIdDisplay');
-                const groupBtn = document.getElementById('groupBtn');
-
-                if (context && context.type === 'group') {
-                    // 群組
-                    groupBox.textContent = context.groupId;
-                    groupBox.classList.remove('no-group');
-
-                    groupBtn.disabled = false;
-                    groupBtn.style.backgroundColor = "#00B900";
-                    groupBtn.textContent = "📋 複製 Group ID";
-
-                } else if (context && context.type === 'room') {
-                    // 多人聊天室
-                    groupBox.textContent = context.roomId;
-                    groupBox.classList.remove('no-group');
-                    groupBtn.disabled = false;
-                    groupBtn.style.backgroundColor = "#00B900";
-                    groupBtn.textContent = "📋 複製 Room ID";
-
-                } else {
-                    // 其他環境
-                    groupBox.textContent = "⚠️ 請在群組內開啟連結以取得 Group ID";
-                    groupBox.classList.add('no-group');
-                    groupBtn.disabled = true;
-                    groupBtn.style.backgroundColor = "#ccc";
-                }
+                if (!liff.isLoggedIn()) { liff.login(); return; }
 
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('content').style.display = 'block';
+                document.getElementById('result').style.display = 'block';
+
+                // --- 3. 取得 User ID ---
+                const profile = await liff.getProfile();
+                currentUserId = profile.userId; // 存入變數
+
+                const userIdDiv = document.getElementById('display-user-id');
+                userIdDiv.innerText = currentUserId;
+                userIdDiv.classList.add("u-id");
+
+                // --- 4. 取得 Context (Group ID) ---
+                const context = liff.getContext();
+
+                if (context && context.type === 'group') {
+                    currentGroupId = context.groupId; // 存入變數
+
+                    const displayEl = document.getElementById('context-id');
+                    displayEl.innerText = currentGroupId;
+
+                    if (currentGroupId.startsWith("C")) {
+                        // 成功 (真實 ID)
+                        displayEl.classList.add("c-id");
+                        document.getElementById('status-text').innerHTML = "✅ <b>真實 Group ID</b>";
+                        document.getElementById('status-text').style.color = "green";
+                        document.getElementById('success-area').style.display = "block";
+                    } else {
+                        // 失敗 (UUID)
+                        displayEl.classList.add("uuid");
+                        document.getElementById('status-text').innerHTML = "❌ <b>虛擬 ID (UUID)</b>";
+                        document.getElementById('status-text').style.color = "red";
+                        document.getElementById('fail-area').style.display = "block";
+                    }
+                } else if (context && context.type === 'room') {
+                    currentGroupId = context.roomId; // 支援聊天室
+                    document.getElementById('context-id').innerText = currentGroupId;
+                    document.getElementById('status-text').innerText = "聊天室 (Room) 環境";
+                    document.getElementById('context-id').classList.add("uuid"); // 通常也是 UUID
+                } else {
+                    document.getElementById('context-id').innerText = "非群組環境";
+                    document.getElementById('status-text').innerText = "請在群組內開啟以取得 Group ID";
+                    // 沒 ID 時，清空變數避免複製到錯誤內容
+                    currentGroupId = "";
+                }
 
             } catch (err) {
-                document.getElementById('loading').innerHTML = "發生錯誤：<br>" + err;
+                alert("錯誤：" + err);
                 console.error(err);
             }
         }
 
-        // 複製功能 (維持不變)
-        function copyText(elementId) {
-            const text = document.getElementById(elementId).textContent;
-            if (text.includes("⚠️")) return;
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showStatus("✅ 複製成功！");
-                }).catch(err => {
-                    manualCopy(text);
-                });
-            } else {
-                manualCopy(text);
+        // --- 呼叫機器人救援 ---
+        async function askBot() {
+            if (!liff.isInClient()) {
+                alert('請在 LINE App 內使用');
+                return;
+            }
+            try {
+                await liff.sendMessages([{ type: 'text', text: '#DEBUG_ID' }]);
+                alert('指令已發送！請查看聊天室中機器人的回覆。');
+            } catch (error) {
+                alert('發送失敗，請確認您有 chat_message.write 權限。');
             }
         }
 
-        function manualCopy(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand("copy");
-            document.body.removeChild(textArea);
-            showStatus("✅ 複製成功！");
-        }
-
-        function showStatus(msg) {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = msg;
-            setTimeout(() => {
-                statusEl.textContent = "";
-            }, 2000);
+        // --- 複製文字功能 ---
+        function copyText(text) {
+            if (!text) {
+                alert("目前沒有 ID 可供複製");
+                return;
+            }
+            // 使用 Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("已複製到剪貼簿！\n" + text);
+                }).catch(err => {
+                    alert("複製失敗: " + err);
+                });
+            } else {
+                // 備用方案 (舊版瀏覽器)
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    alert("已複製到剪貼簿！\n" + text);
+                } catch (err) {
+                    alert("複製失敗");
+                }
+                document.body.removeChild(textArea);
+            }
         }
 
         main();
