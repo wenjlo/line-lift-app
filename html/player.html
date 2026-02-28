@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>線上賞屋</title>
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js" nonce="ODQ4MzU0MSwzODIwNDk3MzUx"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <style>
         /* === 全域設定 === */
@@ -12,239 +12,309 @@
         .swiper { width: 100%; max-width: 420px; height: 85vh; }
         .swiper-slide { background: #fff; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
 
-        /* 影片區塊樣式修正 */
-        .media-container { width: 100%; height: 60%; background: #000; position: relative; overflow: hidden; }
-        video { width: 100%; height: 100%; object-fit: contain; background: black; display: none; }
 
-        /* 播放封面與按鈕 */
-        .play-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-position: center; background-size: cover; background-repeat: no-repeat; display: flex; align-items: center; justify-content: center; z-index: 10; cursor: pointer; transition: opacity 0.3s; }
-        .play-icon { width: 64px; height: 64px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; border: 2px solid rgba(255, 255, 255, 0.8); padding-left: 4px; pointer-events: none; }
+        /* === 媒體區塊 === */
+        .media-container {
+            width: 100%;
+            height: 60%;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+
+        /* 1. 模糊背景層 (負責填滿空隙) */
+        .blur-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;       /* 強制填滿 */
+            background-position: center;
+            filter: blur(20px) brightness(0.6); /* 強烈模糊 + 變暗 */
+            z-index: 1;
+            transform: scale(1.2); /* 放大一點避免模糊邊緣穿幫 */
+        }
+
+
+        /* 2. 主圖層 (負責完整顯示) */
+        .main-img {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-size: contain;     /* 關鍵：完整顯示，不裁切 */
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 5;
+            transition: opacity 0.3s;
+        }
+
+
+        /* 影片：也要完整顯示 */
+        video {
+            position: relative;
+            z-index: 6;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 影片完整顯示 */
+            display: none;
+        }
+
+
+        /* 播放按鈕 */
+        .play-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+
+        .play-icon {
+            width: 64px; height: 64px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 28px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            padding-left: 4px; pointer-events: none;
+        }
         .link-icon { padding-left: 0; font-size: 24px; }
 
-        .info-container { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
-        .tag { background-color: #f0f0f0; color: #666; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
-        .title { font-size: 20px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; color: #222; }
+
+        /* === 資訊區塊 === */
+        .info-container {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: white;
+            z-index: 20;
+        }
+
+
+        .tag { background-color: #f0f0f0; color: #666; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; width: fit-content; }
+
+
+        /* 文字防跑版限制 */
+        .title {
+            font-size: 20px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; color: #222;
+            display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden;
+        }
         .price { font-size: 24px; font-weight: 800; color: #e63946; margin-bottom: 8px; }
-        .address { font-size: 14px; color: #666; display: flex; align-items: center; margin-bottom: 15px; }
-        .btn { background-color: #06C755; color: white; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: auto; transition: background-color 0.2s; }
+        .address {
+            font-size: 12px; /* 1. 字體縮小 */
+            line-height: 1.4; /* 2. 設定行高讓小字不擁擠 */
+            color: #666;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            display: -webkit-box;
+            -webkit-line-clamp: 15; /* 3. 放寬顯示行數 (原本是 8) */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-all;
+        }
+        .btn { background-color: #06C755; color: white; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: auto; }
+
 
         .float-btn-container { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 15px; z-index: 100; pointer-events: none; }
-        .float-btn { pointer-events: auto; background-color: #333; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; transition: transform 0.1s; }
+        .float-btn { pointer-events: auto; background-color: #333; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; }
+
 
         #todayBtn { background-color: #ff9800; display: none; }
         #shareBtn { background-color: #06C755; display: none !important; }
-
         #loading { position: absolute; color: white; text-align: center; font-size: 14px; letter-spacing: 1px; z-index: 50; }
-
-        /* admin-badge 預設隱藏 */
         #admin-badge { position: fixed; top: 10px; right: 10px; background: rgba(6, 199, 85, 0.9); color: white; font-size: 12px; padding: 6px 10px; border-radius: 20px; z-index: 9999; display: none; pointer-events: none; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-
-        .error-box { background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 80%; z-index: 60; }
-        .error-box button { margin-top: 15px; background: #333; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="loading">正在連線...</div>
-    <div id="admin-badge">👑 管理員</div>
 
-    <div class="float-btn-container">
-        <div id="todayBtn" class="float-btn" onclick="goToToday()">
-            📅 看今日精選
-        </div>
-        <div id="shareBtn" class="float-btn" onclick="shareToFriends()">
-            📤 分享給朋友
-        </div>
-    </div>
+<div id="loading">正在連線...</div>
+<div id="admin-badge">👑 管理員</div>
 
-    <div class="swiper mySwiper" style="display:none; opacity: 0; transition: opacity 0.5s;">
-        <div class="swiper-wrapper" id="slideContainer"></div>
-        <div class="swiper-pagination"></div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<div class="float-btn-container">
+    <div id="todayBtn" class="float-btn" onclick="goToToday()">📅 看今日精選</div>
+    <div id="shareBtn" class="float-btn" onclick="shareToFriends()">📤 分享給朋友</div>
+</div>
 
-    <script>
-        // ==========================================
-        // 設定區
-        // ==========================================
-        const BACKEND_API_URL = "https://line-permission-api-43uh3.ondigitalocean.app";
 
-        let MY_LIFF_ID = "";
-        let globalHousesData = [];
+<div class="swiper mySwiper" style="display:none; opacity: 0; transition: opacity 0.5s;">
+    <div class="swiper-wrapper" id="slideContainer"></div>
+    <div class="swiper-pagination"></div>
+</div>
 
-        // URL 解析
-        function getTodayString() {
-            const d = new Date();
-            return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-        }
-        const todayStr = getTodayString();
 
-        const urlParams = new URLSearchParams(window.location.search);
-        let targetDate = urlParams.get('date') || todayStr;
-        let targetType = urlParams.get('type') || 'video';
-        let targetIndex = parseInt(urlParams.get('idx')) || 0;
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" nonce="ODQ4MzU0MSwzODIwNDk3MzUx"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest" nonce="ODQ4MzU0MSwzODIwNDk3MzUx"></script>
 
-        if (targetDate !== todayStr) {
-            document.getElementById('todayBtn').style.display = 'flex';
-        }
 
-        function formatDate(str) {
-            if (str && str.length === 8) return `${str.substring(0,4)}/${str.substring(4,6)}/${str.substring(6,8)}`;
-            return str;
-        }
-        function goToToday() {
-            window.location.href = `?date=${todayStr}&type=${targetType}&t=${new Date().getTime()}`;
-        }
+<script nonce="ODQ4MzU0MSwzODIwNDk3MzUx">
+    const BACKEND_API_URL = "https://line-permission-api-43uh3.ondigitalocean.app";
+    let MY_LIFF_ID = "";
+    let globalHousesData = [];
 
-        // ==========================================
-        // 主程式 (Init)
-        // ==========================================
-        async function init() {
-            const loading = document.getElementById('loading');
 
+    function getTodayString() {
+        const d = new Date();
+        return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+    }
+    const todayStr = getTodayString();
+    const urlParams = new URLSearchParams(window.location.search);
+    let targetDate = urlParams.get('date') || todayStr;
+    let targetType = urlParams.get('type') || 'video';
+    let targetIndex = parseInt(urlParams.get('idx')) || 0;
+
+
+    if (targetDate !== todayStr) document.getElementById('todayBtn').style.display = 'flex';
+
+
+    function formatDate(str) {
+        if (str && str.length === 8) return `${str.substring(0,4)}/${str.substring(4,6)}/${str.substring(6,8)}`;
+        return str;
+    }
+    function goToToday() {
+        window.location.href = `?date=${todayStr}&type=${targetType}&t=${new Date().getTime()}`;
+    }
+
+
+    async function init() {
+        const loading = document.getElementById('loading');
+        try {
+            const configRes = await fetch(`config.json?t=${new Date().getTime()}`);
+            if (!configRes.ok) throw new Error("Config missing");
+            const configData = await configRes.json();
+            MY_LIFF_ID = configData.liffId;
+
+
+            await liff.init({ liffId: MY_LIFF_ID });
+            if (!liff.isLoggedIn()) { liff.login(); return; }
+
+
+            const profile = await liff.getProfile();
+
+
+            // 權限檢查區塊
+            loading.innerText = "載入內容...";
             try {
-                // 1. 讀取 Config
-                const configRes = await fetch(`config.json?t=${new Date().getTime()}`);
-                if (!configRes.ok) throw new Error("Config missing");
-                const configData = await configRes.json();
-                MY_LIFF_ID = configData.liffId;
-
-                // 2. 初始化 LIFF
-                await liff.init({ liffId: MY_LIFF_ID });
-                if (!liff.isLoggedIn()) { liff.login(); return; }
-
-                // 3. 取得 User Info & Context
-                const profile = await liff.getProfile();
-                const userId = profile.userId;
-                const context = liff.getContext();
-
                 let currentGroupId = "";
-                if (context && context.type === 'group') {
-                    currentGroupId = context.groupId;
-                } else if (context && context.type === 'room') {
-                    currentGroupId = context.roomId;
-                }
+                const context = liff.getContext();
+                if (context && context.type === 'group') currentGroupId = context.groupId;
+                else if (context && context.type === 'room') currentGroupId = context.roomId;
 
-                // ==========================================
-                // 4. 呼叫 Go Backend API 檢查 "分享權限"
-                // ==========================================
-                loading.innerText = "載入內容...";
 
-                try {
-                    const apiRes = await fetch(`${BACKEND_API_URL}/api/check-permission`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: userId,
-                            group_id: currentGroupId
-                        })
-                    });
-
-                    if (apiRes.ok) {
-                        const perms = await apiRes.json();
-                        console.log("Permission Result:", perms);
-
-                        // === 只判斷是否為管理員 (can_share) ===
-                        if (perms.can_share) {
-                            document.getElementById('admin-badge').style.display = 'block';
-                            if (liff.isApiAvailable('shareTargetPicker')) {
-                                document.getElementById('shareBtn').style.setProperty('display', 'flex', 'important');
-                            }
-                        } else {
-                            document.getElementById('shareBtn').style.display = 'none';
-                            document.getElementById('admin-badge').style.display = 'none';
+                const apiRes = await fetch(`${BACKEND_API_URL}/api/check-permission`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: profile.userId, group_id: currentGroupId })
+                });
+                if (apiRes.ok) {
+                    const perms = await apiRes.json();
+                    if (perms.can_share) {
+                        document.getElementById('admin-badge').style.display = 'block';
+                        if (liff.isApiAvailable('shareTargetPicker')) {
+                            document.getElementById('shareBtn').style.setProperty('display', 'flex', 'important');
                         }
                     }
-                } catch (apiErr) {
-                    console.error("API Error:", apiErr);
-                    // API 失敗不阻擋觀看，僅不顯示管理員按鈕
                 }
+            } catch (e) { console.error(e); }
 
-                // ==========================================
-                // 5. 載入資料 (所有人都能看)
-                // ==========================================
-                loading.innerText = "載入內容...";
 
-                let filename = targetDate;
-                if (targetDate.length === 8) {
-                    filename = `${targetType}-${targetDate.substring(0,4)}-${targetDate.substring(4,6)}-${targetDate.substring(6,8)}`;
-                }
+            // 資料載入區塊
+            let filename = targetDate;
+            if (targetDate.length === 8) filename = `${targetType}-${targetDate.substring(0,4)}-${targetDate.substring(4,6)}-${targetDate.substring(6,8)}`;
 
-                const jsonUrl = `${filename}.json?t=${new Date().getTime()}`;
-                const response = await fetch(jsonUrl);
-                if (!response.ok) throw new Error("Data not found");
 
-                const houses = await response.json();
-                globalHousesData = houses;
-                renderSlides(houses);
+            const response = await fetch(`${filename}.json?t=${new Date().getTime()}`);
+            if (!response.ok) throw new Error("Data not found");
+            globalHousesData = await response.json();
 
-                loading.style.display = 'none';
-                const swiperEl = document.querySelector('.mySwiper');
-                swiperEl.style.display = 'block';
-                setTimeout(() => swiperEl.style.opacity = '1', 50);
 
-            } catch (err) {
-                console.error(err);
-                loading.style.display = 'none';
-                if(err.message.includes("Data not found")) {
-                    alert("目前沒有本日的賞屋資料");
-                } else {
-                    alert("發生錯誤：" + err.message);
-                }
-            }
+            renderSlides(globalHousesData);
+
+
+            loading.style.display = 'none';
+            const swiperEl = document.querySelector('.mySwiper');
+            swiperEl.style.display = 'block';
+            setTimeout(() => swiperEl.style.opacity = '1', 50);
+
+
+        } catch (err) {
+            loading.style.display = 'none';
+            if(err.message.includes("Data not found")) alert("目前沒有本日的賞屋資料");
+            else alert("發生錯誤：" + err.message);
         }
+    }
 
-        // ==============================================
-        // 渲染畫面 (包含修正後的 Video 結構)
-        // ==============================================
-        function isVideoFile(url) { return url && (url.includes('.m3u8') || url.includes('.mp4')); }
 
-        function renderSlides(houses) {
-            const wrapper = document.getElementById('slideContainer');
-            wrapper.innerHTML = ""; // 清空
+    function isVideoFile(url) { return url && (url.includes('.m3u8') || url.includes('.mp4')); }
 
-            houses.forEach((house, index) => {
-                const slide = document.createElement('div');
-                slide.className = 'swiper-slide';
 
-                const isVideo = isVideoFile(house.video_m3u8);
-                const isLink = house.video_m3u8 && !isVideo; // 判斷是否為純連結
+    function renderSlides(houses) {
+        const wrapper = document.getElementById('slideContainer');
+        wrapper.innerHTML = "";
 
-                let mediaHtml = "";
 
-                if (isVideo) {
-                    // 注意：onclick 使用 window.playVideo
-                    mediaHtml = `
+        houses.forEach((house, index) => {
+            const slide = document.createElement('div');
+            slide.className = 'swiper-slide';
+
+
+            const isVideo = isVideoFile(house.video_m3u8);
+            const isLink = house.video_m3u8 && !isVideo;
+
+
+            // 建立背景與主圖層
+            // 1. Blur Layer (背景模糊)
+            const blurLayer = `<div class="blur-bg" style="background-image: url('${house.image_url}');"></div>`;
+
+
+            let mediaHtml = "";
+
+
+            if (isVideo) {
+                mediaHtml = `
                         <div class="media-container">
-                            <div class="play-overlay" id="cover-${index}"
+                            ${blurLayer}
+                            <video id="video-${index}" playsinline muted controls preload="metadata"></video>
+
+
+                            <div class="main-img" id="cover-${index}"
                                  style="background-image: url('${house.image_url}');"
                                  onclick="window.playVideo(${index}, '${house.video_m3u8}')">
+                            </div>
+                            <div class="play-overlay" onclick="window.playVideo(${index}, '${house.video_m3u8}')">
                                 <div class="play-icon">▶</div>
                             </div>
-                            <video id="video-${index}" playsinline muted controls preload="metadata"></video>
                         </div>
                     `;
-                } else if (isLink) {
-                    mediaHtml = `
+            } else if (isLink) {
+                mediaHtml = `
                          <div class="media-container">
-                            <div class="play-overlay"
-                                    style="background-image: url('${house.image_url}');"
-                                    onclick="window.open('${house.video_m3u8}', '_blank')">
+                            ${blurLayer}
+                            <div class="main-img"
+                                 style="background-image: url('${house.image_url}');"
+                                 onclick="window.open('${house.video_m3u8}', '_blank')">
+                            </div>
+                            <div class="play-overlay" onclick="window.open('${house.video_m3u8}', '_blank')">
                                 <div class="play-icon link-icon">🔗</div>
                             </div>
                         </div>
                     `;
-                } else {
-                    mediaHtml = `
+            } else {
+                mediaHtml = `
                         <div class="media-container">
-                            <div style="width:100%; height:100%; background:url('${house.image_url}') center/cover no-repeat;"></div>
+                            ${blurLayer}
+                            <div class="main-img" style="background-image: url('${house.image_url}');"></div>
                         </div>
                     `;
-                }
+            }
 
-                slide.innerHTML = `
+
+            slide.innerHTML = `
                     ${mediaHtml}
                     <div class="info-container">
                         <div>
@@ -253,119 +323,173 @@
                             <div class="price">${house.price||"免費"}</div>
                             <div class="address">${house.address}</div>
                         </div>
-                        <a href="${house.detail_url}" class="btn" target="_blank">查看全部</a>
+                        <a href="${house.detail_url}" class="btn" target="_blank">立即私訊</a>
                     </div>
                 `;
-                wrapper.appendChild(slide);
-            });
+            wrapper.appendChild(slide);
+        });
 
-            new Swiper(".mySwiper", {
-                pagination: { el: ".swiper-pagination", dynamicBullets: true },
-                effect: "coverflow",
-                centeredSlides: true,
-                slidesPerView: "auto",
-                initialSlide: targetIndex,
-                spaceBetween: 20,
-                coverflowEffect: { depth: 100, modifier: 1, slideShadows: false },
-                on: { slideChange: function () { document.querySelectorAll('video').forEach(v => v.pause()); } }
-            });
-        }
 
-        // ==============================================
-        // 播放器核心邏輯 (支援 MP4/HLS + 自動修正權限)
-        // ==============================================
-        window.playVideo = function(index, src) {
-            const video = document.getElementById(`video-${index}`);
-            const cover = document.getElementById(`cover-${index}`);
+        new Swiper(".mySwiper", {
+            pagination: { el: ".swiper-pagination", dynamicBullets: true },
+            effect: "coverflow",
+            centeredSlides: true,
+            slidesPerView: "auto",
+            initialSlide: targetIndex,
+            spaceBetween: 20,
+            coverflowEffect: { depth: 100, modifier: 1, slideShadows: false },
+            on: { slideChange: function () { document.querySelectorAll('video').forEach(v => v.pause()); } }
+        });
+    }
 
-            if (!video) return;
 
-            // 切換 UI
-            cover.style.display = 'none';
-            video.style.display = 'block';
+    window.playVideo = function(index, src) {
+        const video = document.getElementById(`video-${index}`);
+        const cover = document.getElementById(`cover-${index}`);
+        const parent = video.closest('.media-container');
+        const overlay = parent.querySelector('.play-overlay');
 
-            // 確保靜音以符合 Autoplay Policy
-            video.muted = true;
 
-            // MP4 處理
-            if (src.includes('.mp4')) {
+        if (!video) return;
+
+
+        // 隱藏封面與播放鈕
+        if(cover) cover.style.opacity = '0';
+        if(overlay) overlay.style.display = 'none';
+        setTimeout(() => { if(cover) cover.style.display = 'none'; }, 300);
+
+
+        video.style.display = 'block';
+        video.muted = true;
+
+
+        if (src.includes('.mp4')) {
+            video.src = src;
+            attemptPlay(video);
+        } else {
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = src;
-                attemptPlay(video);
-            }
-            // HLS 處理
-            else {
-                if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    // iOS Native
-                    video.src = src;
-                    video.addEventListener('loadedmetadata', function() {
-                        attemptPlay(video);
-                    });
-                } else if (Hls.isSupported()) {
-                    // Android / PC
-                    const hls = new Hls();
-                    hls.loadSource(src);
-                    hls.attachMedia(video);
-                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                        attemptPlay(video);
-                    });
-                } else {
-                    alert("您的瀏覽器不支援此影片格式");
-                }
-            }
-        };
-
-        function attemptPlay(videoEl) {
-            const playPromise = videoEl.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.error("Autoplay prevented:", error);
-                    // 如果被阻擋，顯示控制項讓使用者手點
-                    videoEl.controls = true;
-                    if (error.name === 'NotAllowedError') {
-                        // 這是正常的，通常是因為瀏覽器不允許程式觸發播放
-                        // 已經顯示 controls，使用者點擊即可
-                    } else {
-                        alert("無法播放影片: " + error.message);
-                    }
-                });
+                video.addEventListener('loadedmetadata', function() { attemptPlay(video); });
+            } else if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(src);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() { attemptPlay(video); });
+            } else {
+                alert("不支援此影片格式");
             }
         }
+    };
 
-        // ... 分享邏輯 ...
-        async function shareToFriends() {
-            if (!liff.isLoggedIn()) { liff.login(); return; }
-            if (globalHousesData.length === 0) return;
 
+    function attemptPlay(videoEl) {
+        const playPromise = videoEl.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(() => { videoEl.controls = true; });
+        }
+    }
+
+
+    async function shareToFriends() {
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if (globalHousesData.length === 0) { alert("沒有資料可分享"); return; }
+        if (!MY_LIFF_ID) { alert("無法取得 LIFF ID"); return; }
+
+
+        try {
             const bubbles = globalHousesData.slice(0, 12).map((house, index) => {
                 const safeUrl = `https://liff.line.me/${MY_LIFF_ID}?date=${targetDate}&type=${targetType}&idx=${index}`;
-                let displayPrice = house.price || (house.address ? house.address.substring(0, 15)+"..." : "精選內容");
+
+
+                // 確保圖片網址有效
+                let imageUrl = house.image_url;
+                if (!imageUrl || !imageUrl.startsWith('http')) {
+                    imageUrl = "https://via.placeholder.com/1024x576?text=No+Image";
+                }
+
 
                 return {
-                    "type": "bubble", "size": "kilo",
+                    "type": "bubble",
+                    "size": "kilo",
                     "hero": {
-                        "type": "image", "url": house.image_url, "size": "full", "aspectMode": "cover", "aspectRatio": "16:9",
+                        "type": "image",
+                        "url": imageUrl,
+                        "size": "full",
+                        "aspectMode": "cover",
+                        "aspectRatio": "16:9",
                         "action": { "type": "uri", "label": "查看", "uri": safeUrl }
                     },
                     "body": {
-                        "type": "box", "layout": "vertical",
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "sm", // 讓元件之間稍微緊湊一點，騰出空間給文字
                         "contents": [
-                            { "type": "text", "text": house.title, "weight": "bold", "size": "md", "wrap": true },
-                            { "type": "text", "text": displayPrice, "weight": "bold", "size": "sm", "color": "#ff5555", "margin": "sm" }
+                            // 標題區
+                            {
+                                "type": "text",
+                                "text": house.title || "今日推薦",
+                                "weight": "bold",
+                                "size": "xs",
+                                "color": "#999999"
+                            },
+                            // 價格/名稱區 (例如：🎀 煉乳 🎀)
+                            {
+                                "type": "text",
+                                "text": house.price || "點擊查看",
+                                "weight": "bold",
+                                "size": "lg", // 字稍微調小一點點，避免佔太多行
+                                "color": "#e63946",
+                                "wrap": true
+                            },
+                            // --- 關鍵修正區 Start ---
+                            {
+                                "type": "text",
+                                "text": house.address, // 這裡面有 \n
+                                "size": "sm",
+                                "color": "#666666",
+                                "wrap": true,      // 🛑 1. 必須為 true，\n 才會生效
+                                "maxLines": 10,    // 🛑 2. 調大行數限制 (你的資料有空行，需要較多空間)
+                                "margin": "md"
+                            }
+                            // --- 關鍵修正區 End ---
                         ]
                     },
                     "footer": {
-                        "type": "box", "layout": "vertical",
-                        "contents": [{ "type": "button", "style": "primary", "color": "#06C755", "height": "sm", "action": { "type": "uri", "label": "點擊觀看", "uri": safeUrl } }]
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                            { "type": "button", "style": "primary", "color": "#06C755", "height": "sm", "action": { "type": "uri", "label": "🔥 查看全部", "uri": safeUrl } }
+                        ]
                     }
                 };
             });
 
-            try {
-                await liff.shareTargetPicker([{ "type": "flex", "altText": `【精選】${formatDate(targetDate)} 賞屋`, "contents": { "type": "carousel", "contents": bubbles } }]);
-            } catch (err) { console.error(err); }
-        }
 
-        init();
-    </script>
+            console.log("分享內容預覽:", JSON.stringify(bubbles));
+
+
+            if (liff.isApiAvailable('shareTargetPicker')) {
+                const res = await liff.shareTargetPicker([
+                    {
+                        "type": "flex",
+                        "altText": `【新訊】${globalHousesData[0].price || "查看推薦內容"}`,
+                        "contents": { "type": "carousel", "contents": bubbles }
+                    }
+                ]);
+                if (res) console.log("分享成功");
+            } else {
+                alert("不支援分享功能");
+            }
+
+
+        } catch (err) {
+            console.error(err);
+            alert("分享錯誤: " + err.message);
+        }
+    }
+
+
+    init();
+</script>
 </body>
 </html>
