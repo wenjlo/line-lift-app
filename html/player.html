@@ -399,7 +399,7 @@
                             <div class="price">${house.price||"免費"}</div>
                             <div class="address">${house.address}</div>
                         </div>
-                        <a href="${house.detail_url}" class="btn" target="_blank">立即私訊</a>
+                        <a href="${house.detail_url}" class="btn" target="_blank">🔥立即私訊</a>
                     </div>
                 `;
             wrapper.appendChild(slide);
@@ -527,7 +527,7 @@
                                 "type": "text",
                                 "text": house.title || "今日推薦",
                                 "weight": "bold",
-                                "size": "xs",
+                                "size": "md",
                                 "color": "#999999"
                             },
                             // 價格/名稱區 (例如：🎀 煉乳 🎀)
@@ -535,7 +535,7 @@
                                 "type": "text",
                                 "text": house.price || "點擊查看",
                                 "weight": "bold",
-                                "size": "lg", // 字稍微調小一點點，避免佔太多行
+                                "size": "xl",
                                 "color": "#e63946",
                                 "wrap": true
                             },
@@ -543,7 +543,7 @@
                             {
                                 "type": "text",
                                 "text": house.address, // 這裡面有 \n
-                                "size": "sm",
+                                "size": "xxs",
                                 "color": "#666666",
                                 "wrap": true,      // 🛑 1. 必須為 true，\n 才會生效
                                 "maxLines": 10,    // 🛑 2. 調大行數限制 (你的資料有空行，需要較多空間)
