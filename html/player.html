@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>線上賞屋</title>
-    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js" nonce="ODQ4MzU0MSwzODIwNDk3MzUx"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js" nonce="MTEyNjAzNTE2NSw4ODEyNDc4NjQ="></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <style>
         /* === 全域設定 === */
         body { background-color: #1a1a1a; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; color: #333; overflow: hidden; }
         .swiper { width: 100%; max-width: 420px; height: 85vh; }
         .swiper-slide { background: #fff; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+
 
 
         /* === 媒體區塊 === */
@@ -21,6 +23,8 @@
             position: relative;
             overflow: hidden;
         }
+
+
 
 
         /* 1. 模糊背景層 (負責填滿空隙) */
@@ -35,6 +39,8 @@
         }
 
 
+
+
         /* 2. 主圖層 (負責完整顯示) */
         .main-img {
             position: absolute;
@@ -45,6 +51,8 @@
             z-index: 5;
             transition: opacity 0.3s;
         }
+
+
 
 
         /* 影片：也要完整顯示 */
@@ -58,6 +66,8 @@
         }
 
 
+
+
         /* 播放按鈕 */
         .play-overlay {
             position: absolute;
@@ -68,6 +78,8 @@
             align-items: center;
             justify-content: center;
         }
+
+
 
 
         .play-icon {
@@ -83,6 +95,8 @@
         .link-icon { padding-left: 0; font-size: 24px; }
 
 
+
+
         /* === 資訊區塊 === */
         .info-container {
             padding: 20px;
@@ -95,7 +109,11 @@
         }
 
 
+
+
         .tag { background-color: #f0f0f0; color: #666; font-size: 12px; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; width: fit-content; }
+
+
 
 
         /* 文字防跑版限制 */
@@ -119,8 +137,12 @@
         .btn { background-color: #06C755; color: white; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: block; margin-top: auto; }
 
 
+
+
         .float-btn-container { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 15px; z-index: 100; pointer-events: none; }
         .float-btn { pointer-events: auto; background-color: #333; color: white; padding: 12px 24px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; gap: 5px; }
+
+
 
 
         #todayBtn { background-color: #ff9800; display: none; }
@@ -132,8 +154,12 @@
 <body>
 
 
+
+
 <div id="loading">正在連線...</div>
 <div id="admin-badge">👑 管理員</div>
+
+
 
 
 <div class="float-btn-container">
@@ -142,20 +168,28 @@
 </div>
 
 
+
+
 <div class="swiper mySwiper" style="display:none; opacity: 0; transition: opacity 0.5s;">
     <div class="swiper-wrapper" id="slideContainer"></div>
     <div class="swiper-pagination"></div>
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" nonce="ODQ4MzU0MSwzODIwNDk3MzUx"></script>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest" nonce="ODQ4MzU0MSwzODIwNDk3MzUx"></script>
 
 
-<script nonce="ODQ4MzU0MSwzODIwNDk3MzUx">
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" nonce="MTEyNjAzNTE2NSw4ODEyNDc4NjQ="></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest" nonce="MTEyNjAzNTE2NSw4ODEyNDc4NjQ="></script>
+
+
+
+
+<script nonce="MTEyNjAzNTE2NSw4ODEyNDc4NjQ=">
     const BACKEND_API_URL = "https://line-permission-api-43uh3.ondigitalocean.app";
     let MY_LIFF_ID = "";
     let globalHousesData = [];
+
+
 
 
     function getTodayString() {
@@ -169,7 +203,11 @@
     let targetIndex = parseInt(urlParams.get('idx')) || 0;
 
 
+
+
     if (targetDate !== todayStr) document.getElementById('todayBtn').style.display = 'flex';
+
+
 
 
     function formatDate(str) {
@@ -181,6 +219,8 @@
     }
 
 
+
+
     async function init() {
         const loading = document.getElementById('loading');
         try {
@@ -190,11 +230,17 @@
             MY_LIFF_ID = configData.liffId;
 
 
+
+
             await liff.init({ liffId: MY_LIFF_ID });
             if (!liff.isLoggedIn()) { liff.login(); return; }
 
 
+
+
             const profile = await liff.getProfile();
+
+
 
 
             // 權限檢查區塊
@@ -204,6 +250,8 @@
                 const context = liff.getContext();
                 if (context && context.type === 'group') currentGroupId = context.groupId;
                 else if (context && context.type === 'room') currentGroupId = context.roomId;
+
+
 
 
                 const apiRes = await fetch(`${BACKEND_API_URL}/api/check-permission`, {
@@ -223,9 +271,13 @@
             } catch (e) { console.error(e); }
 
 
+
+
             // 資料載入區塊
             let filename = targetDate;
             if (targetDate.length === 8) filename = `${targetType}-${targetDate.substring(0,4)}-${targetDate.substring(4,6)}-${targetDate.substring(6,8)}`;
+
+
 
 
             const response = await fetch(`${filename}.json?t=${new Date().getTime()}`);
@@ -233,13 +285,19 @@
             globalHousesData = await response.json();
 
 
+
+
             renderSlides(globalHousesData);
+
+
 
 
             loading.style.display = 'none';
             const swiperEl = document.querySelector('.mySwiper');
             swiperEl.style.display = 'block';
             setTimeout(() => swiperEl.style.opacity = '1', 50);
+
+
 
 
         } catch (err) {
@@ -250,7 +308,11 @@
     }
 
 
+
+
     function isVideoFile(url) { return url && (url.includes('.m3u8') || url.includes('.mp4')); }
+
+
 
 
     function renderSlides(houses) {
@@ -258,13 +320,19 @@
         wrapper.innerHTML = "";
 
 
+
+
         houses.forEach((house, index) => {
             const slide = document.createElement('div');
             slide.className = 'swiper-slide';
 
 
+
+
             const isVideo = isVideoFile(house.video_m3u8);
             const isLink = house.video_m3u8 && !isVideo;
+
+
 
 
             // 建立背景與主圖層
@@ -272,7 +340,11 @@
             const blurLayer = `<div class="blur-bg" style="background-image: url('${house.image_url}');"></div>`;
 
 
+
+
             let mediaHtml = "";
+
+
 
 
             if (isVideo) {
@@ -280,6 +352,8 @@
                         <div class="media-container">
                             ${blurLayer}
                             <video id="video-${index}" playsinline muted controls preload="metadata"></video>
+
+
 
 
                             <div class="main-img" id="cover-${index}"
@@ -314,6 +388,8 @@
             }
 
 
+
+
             slide.innerHTML = `
                     ${mediaHtml}
                     <div class="info-container">
@@ -330,6 +406,8 @@
         });
 
 
+
+
         new Swiper(".mySwiper", {
             pagination: { el: ".swiper-pagination", dynamicBullets: true },
             effect: "coverflow",
@@ -343,6 +421,8 @@
     }
 
 
+
+
     window.playVideo = function(index, src) {
         const video = document.getElementById(`video-${index}`);
         const cover = document.getElementById(`cover-${index}`);
@@ -350,7 +430,11 @@
         const overlay = parent.querySelector('.play-overlay');
 
 
+
+
         if (!video) return;
+
+
 
 
         // 隱藏封面與播放鈕
@@ -359,8 +443,12 @@
         setTimeout(() => { if(cover) cover.style.display = 'none'; }, 300);
 
 
+
+
         video.style.display = 'block';
         video.muted = true;
+
+
 
 
         if (src.includes('.mp4')) {
@@ -382,6 +470,8 @@
     };
 
 
+
+
     function attemptPlay(videoEl) {
         const playPromise = videoEl.play();
         if (playPromise !== undefined) {
@@ -390,10 +480,14 @@
     }
 
 
+
+
     async function shareToFriends() {
         if (!liff.isLoggedIn()) { liff.login(); return; }
         if (globalHousesData.length === 0) { alert("沒有資料可分享"); return; }
         if (!MY_LIFF_ID) { alert("無法取得 LIFF ID"); return; }
+
+
 
 
         try {
@@ -401,11 +495,15 @@
                 const safeUrl = `https://liff.line.me/${MY_LIFF_ID}?date=${targetDate}&type=${targetType}&idx=${index}`;
 
 
+
+
                 // 確保圖片網址有效
                 let imageUrl = house.image_url;
                 if (!imageUrl || !imageUrl.startsWith('http')) {
                     imageUrl = "https://via.placeholder.com/1024x576?text=No+Image";
                 }
+
+
 
 
                 return {
@@ -465,7 +563,11 @@
             });
 
 
+
+
             console.log("分享內容預覽:", JSON.stringify(bubbles));
+
+
 
 
             if (liff.isApiAvailable('shareTargetPicker')) {
@@ -482,11 +584,15 @@
             }
 
 
+
+
         } catch (err) {
             console.error(err);
             alert("分享錯誤: " + err.message);
         }
     }
+
+
 
 
     init();
